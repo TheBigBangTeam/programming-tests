@@ -2,12 +2,21 @@
 const express = require('express')
 const app = express()
 
-// Middleware che logga il tempo di quando viene chiamata una richiesta
+// Middleware (APPLICATION-LEVEL) che logga il tempo di quando viene chiamata una richiesta
 app.use(function (req, res, next) {
     req.tempoRichiesta = Date.now()
     console.log(req.tempoRichiesta);
     next()
 })
+
+// Middleware Application CONCATENATO specifico montato su '/user/' che stampa sulla console il tipo di richiesta e l'url di origine
+app.use('/users/:userId', function (req, res, next) {
+    console.log('Request URL:', req.originalUrl)
+    next()
+  }, function (req, res, next) {
+    console.log('Request Type:', req.method)
+    next()
+  })
 
 // Queste route hanno come match /,
 app.route('/')
@@ -23,7 +32,7 @@ app.get('/hel?lo', (req,res) => res.send('GET to request hello or helo'))
 // Route che prende in input un valore
 app.get('/users/:userId', (req,res) => res.send('You searched for user : ' + req.params['userId']))
 
-// Uso di next(middleware)
+// Uso di next(middleware) con la Arrow notation '=>' per le funzioni
 app.get('/middleware', (req,res,next) => {console.log('next function will send response..'); next() }, (req,res) => res.send('Hello man!'))
 
 // Uso più complesso di middleware e valore, si vince con /middleinput/michele/codice/1337 
