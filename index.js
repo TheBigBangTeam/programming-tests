@@ -1,6 +1,7 @@
 
 const express = require('express')
 const app = express()
+const router = express.Router()
 
 // Middleware (APPLICATION-LEVEL) che logga il tempo di quando viene chiamata una richiesta
 app.use(function (req, res, next) {
@@ -17,6 +18,20 @@ app.use('/users/:userId', function (req, res, next) {
     console.log('Request Type:', req.method)
     next()
   })
+
+// Middleware ROUTER-LEVEL che stampa a video una stringa per ogni richiesta AL SOLO ROUTER
+router.use(function (req, res, next) {
+    console.log('Wabba dabba lub lub')
+    next()
+})
+
+// Per accedere a questa usa /rem/rick        (per capire perchè guarda la prossima istruzione dopo questo blocco)
+router.get('/rick', function(req,res){ // Route di test per il middleware sopra 
+    res.send('Fooooorte!')
+})
+
+// COLLEGO IL ROUTER ALL'APP sul percorso /rem
+app.use('/rem', router)
 
 // Queste route hanno come match /,
 app.route('/')
@@ -50,6 +65,9 @@ app.get('/middleinput/:nome/codice/:codice', (req,res,next) => {
         res.send('Si ok....ma il codice non è giusto!');
     }
 })
+
+// All permette di rispondere a ogni richiest (GET, POST etc..) allo stesso modo
+app.all('/all', (req,res) => res.send('Risponderò così a qualsiasi tipo di richiesta'))
 
 
 
