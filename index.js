@@ -2,11 +2,19 @@
 const express = require('express')
 const app = express()
 const router = express.Router()
+var helmet = require('helmet')
+var fs = require('fs')
+var https = require('https')
 
-// Middleware (APPLICATION-LEVEL) che logga il tempo di quando viene chiamata una richiesta
+// Attiva protezioni aggiuntive agli HTTP headers, utile per la sicurezza
+app.use(helmet())
+
+
+// Middleware (APPLICATION-LEVEL) che logga il tempo di quando viene chiamata una richiesta e l'ip da cui è stata fatta
 app.use(function (req, res, next) {
     req.tempoRichiesta = Date.now()
     console.log(req.tempoRichiesta);
+    console.log(req.ip)
     next()
 })
 
@@ -69,8 +77,18 @@ app.get('/middleinput/:nome/codice/:codice', (req,res,next) => {
 // All permette di rispondere a ogni richiest (GET, POST etc..) allo stesso modo
 app.all('/all', (req,res) => res.send('Risponderò così a qualsiasi tipo di richiesta'))
 
+// res.download permette di inviare file da scaricare all'utente che usa il sito web
+app.get('/download', (req,res) => res.download('provadownload.txt'))
+
+// Avvia il server HTTP 
+app.listen(8080, () => console.log('Example app at localhost:8080'))
 
 
-// Avvia il server 
-app.listen(3000, () => console.log('Example app at localhost:3000'))
-
+// Avvia il server HTTPS, Attenzione: devi crearti i certificati auto-firmati 
+var sslOptions = {
+    key: fs.readFileSync('key.pem'),
+    cert: fs.readFileSync('cert.pem')
+  };
+  
+var httpsServer = https.createServer(sslOptions, app);
+httpsServer.listen(8443, () => console.log('Example https server at localhost:8443'));  
