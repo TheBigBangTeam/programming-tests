@@ -1,4 +1,3 @@
-
 const express = require('express')
 const app = express()
 const router = express.Router()
@@ -6,19 +5,70 @@ var helmet = require('helmet')
 var fs = require('fs')
 var https = require('https')
 
+// Connessione al database
+var mongoose = require('mongoose')
+mongoose.connect('mongodb://localhost/test');
+
+// Test connessione al database
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {
+  console.log("Connessione a mongodb avvenuta con successo");
+});
+
 // Attiva protezioni aggiuntive agli HTTP headers, utile per la sicurezza
 app.use(helmet())
+
+
+// Creo uno schema gatto per il database
+var gattoSchema = mongoose.Schema({
+    nome: String
+});
+
+// Creo il model del gatto, ATTENZIONE Mongoose cerca di trasformare al plurale lo schema (di solito aggiunge una s alla fine ma non solo..) e 
+// nel DB sarà quindi 'gattos'
+var Gatto = mongoose.model('gatto',gattoSchema);
+
 
 
 // Middleware (APPLICATION-LEVEL) che logga il tempo di quando viene chiamata una richiesta e l'ip da cui è stata fatta
 app.use(function (req, res, next) {
     req.tempoRichiesta = Date.now()
-    console.log(req.tempoRichiesta);
-    console.log(req.ip)
+    console.log("Richiesta: ")
+    console.log("\tTempo: " + req.tempoRichiesta);
+    console.log("\tIP: " + req.ip)
     next()
 })
 
-// Middleware Application CONCATENATO specifico montato su '/user/' che stampa sulla console il tipo di richiesta e l'url di origine
+// Crea un gatto e lo salva nel database  
+app.get('/gatto/:nome', (req,res) => {
+    // Creo un gatto chiamato col nome della richiesta
+    var gattorichiesto = new Gatto({ nome: req.params['nome'] });
+    gattorichiesto.save( (err, gattosalvato) => {
+        if (err) res.send("Il tuo gatto è stato investito da un'auto, condoglianze");
+        else res.send("Eccoti servito il tuo gatto: <br><br>" + "^^[" + gattorichiesto.nome + "]-----> MIAO!");
+    });
+      
+});
+
+app.get('/gatti', (req,res) => {
+    var html = "";
+    Gatto.find( (err, gatti) => {
+        if (err) res.send("I gatti risiedono solo nella tua fantasia");
+        else {
+            var numerogatti = gatti.length;
+            html += "Gatti in totale = " + numerogatti + "<br><br>";
+            for(var i=0; i<numerogatti;i++){
+                var ngatto = i + 1;
+                html += "Gatto n°" + ngatto + " : " + gatti[i].nome + "<br>";
+            }
+            res.send(html);
+        }
+    })
+})
+
+
+// Middleware Application CONCATENATO(2 next) specifico montato su '/user/' che stampa sulla console il tipo di richiesta e l'url di origine
 app.use('/users/:userId', function (req, res, next) {
     console.log('Request URL:', req.originalUrl)
     next()
@@ -27,7 +77,7 @@ app.use('/users/:userId', function (req, res, next) {
     next()
   })
 
-// Middleware ROUTER-LEVEL che stampa a video una stringa per ogni richiesta AL SOLO ROUTER
+// Middleware (ROUTER-LEVEL) che stampa a video una stringa per ogni richiesta AL SOLO ROUTER
 router.use(function (req, res, next) {
     console.log('Wabba dabba lub lub')
     next()
@@ -35,6 +85,7 @@ router.use(function (req, res, next) {
 
 // Per accedere a questa usa /rem/rick        (per capire perchè guarda la prossima istruzione dopo questo blocco)
 router.get('/rick', function(req,res){ // Route di test per il middleware sopra 
+    // PRIMA PASSA PER IL MIDDLEWARE SOPRA
     res.send('Fooooorte!')
 })
 
@@ -84,11 +135,11 @@ app.get('/download', (req,res) => res.download('provadownload.txt'))
 app.listen(8080, () => console.log('Example app at localhost:8080'))
 
 
-// Avvia il server HTTPS, Attenzione: devi crearti i certificati auto-firmati 
+// Avvia il server HTTPS, Attenzione: devi crearti i certificati auto-firmati (Ad esempio usando openssl)
 var sslOptions = {
     key: fs.readFileSync('key.pem'),
     cert: fs.readFileSync('cert.pem')
-  };
+};
   
 var httpsServer = https.createServer(sslOptions, app);
-httpsServer.listen(8443, () => console.log('Example https server at localhost:8443'));  
+httpsServer.listen(8443, () => console.log('Example https server at localhost:8443'));
